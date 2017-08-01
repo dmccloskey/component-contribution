@@ -40,7 +40,7 @@ class compound_model(object):
         dG0_prime_f = []
         for i, cid in enumerate(self.cids):
             comp = self.ccache.get_kegg_compound_f(cid)
-            dG0_prime_f.append(comp.transform(pH, I, T))
+            dG0_prime_f.append(comp.transform(len(comp.zs)-1, pH, I, T))
 
         return dG0_prime_f # return only the transformed compound dG0
 
