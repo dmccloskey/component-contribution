@@ -100,6 +100,30 @@ class CompoundCacher(object, metaclass=Singleton):
     def add(self, comp):
         self.compound_dict[comp.compound_id] = comp
         self.need_to_update_cache_file = True
+
+    def get_kegg_compound(self, cid):
+        "Legacy implementation"
+        compound_id = 'C%05d' % cid
+        if compound_id in self.compound_dict:
+            return self.compound_dict[compound_id]
+        else:
+            logging.info('Downloading structure and calculating pKa for: ' + compound_id)
+            comp = Compound.from_kegg(cid)
+            self.compound_dict[comp.compound_id] = comp
+            self.need_to_update_cache_file = True
+            return comp
+        
+    def get_kegg_compound_f(self, cid):
+        "Legacy implementation"
+        compound_id = cid
+        if compound_id in self.compound_dict:
+            return self.compound_dict[compound_id]
+        else:
+            logging.info('Downloading structure and calculating pKa for: ' + compound_id)
+            comp = Compound.from_kegg(cid)
+            self.compound_dict[comp.compound_id] = comp
+            self.need_to_update_cache_file = True
+            return comp
             
     def get_element_matrix(self, compound_ids):
         if type(compound_ids) == str:
@@ -126,6 +150,8 @@ class CompoundCacher(object, metaclass=Singleton):
                 for j, elem in enumerate(elements):
                     Ematrix[i, j] = atom_bag.get(elem, 0)
         return elements, Ematrix
+
+
 
 ###############################################################################
 

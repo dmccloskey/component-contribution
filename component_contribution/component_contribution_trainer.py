@@ -315,6 +315,43 @@ class ComponentContribution(object):
         model_cov_dG0 = self.model_S_joined.T * cov_dG0 * self.model_S_joined 
 
         return model_dG0, model_cov_dG0, MSE_kerG
+
+    def estimate_kegg_model_f(self, model_S, model_cids):
+        # standardize the CID list of the training data and the model
+        # and create new (larger) matrices for each one
+        cids_new = [cid for cid in model_cids if cid not in self.train_cids]
+        self.cids_joined = self.train_cids + cids_new
+        self.model_S_joined = ComponentContribution._zero_pad_S(
+            model_S, model_cids, self.cids_joined)
+        self.train_S_joined = ComponentContribution._zero_pad_S(
+            self.train_S, self.train_cids, self.cids_joined)
+
+        self.train_G = ComponentContribution.create_group_incidence_matrix(self.cids_joined)
+        self.train()
+        
+        dG0_cc = self.params['dG0_cc']
+        cov_dG0 = self.params['cov_dG0']
+        MSE_kerG = self.params['MSE_kerG']
+
+        #extract out the dG0 of formation of the model reactions
+        nm = self.model_S_joined.T.shape
+        model_dG0_f={}
+        model_cov_dG0_f={}
+        for i in range(nm[0]):
+            for j in range(nm[1]):
+                if not(self.model_S_joined.T[i,j]==0) and \
+                    not(model_dG0_f.has_key(self.cids_joined[j])):
+                    model_dG0_f[self.cids_joined[j]] = dG0_cc[j,0]
+                    #model_cov_dG0_f[self.cids_joined[j]] = cov_dG0[j,j];
+                        
+        #extract out the dG0 of formation for the covariance matrix of the model reactions
+        for i, ci in enumerate(self.cids_joined):
+            for j, cj in enumerate(self.cids_joined):
+                if ((ci in model_dG0_f.keys() and cj in model_dG0_f.keys()) and \
+                    not model_cov_dG0_f.has_key((ci,cj))):
+                    model_cov_dG0_f[(ci,cj)] = cov_dG0[i,j]
+
+        return model_dG0_f, model_cov_dG0_f
     
     def create_group_incidence_matrix(self):
         """
@@ -471,4 +508,137 @@ class ComponentContribution(object):
                        'preprocess_C1':  preprocess_C1,
                        'preprocess_C2':  preprocess_C2,
                        'preprocess_C3':  preprocess_C3}
+
+    def train_f(self):
+        """
+            Estimate standard Gibbs energies of formation
+        """
+        S = self.train_S_joined
+        G = self.train_G
+        b = self.train_b
+        w = self.train_w
+        
+        m, n = S.shape
+        assert G.shape[0] == m
+        assert b.shape == (n, 1)
+        assert w.shape == (n, 1)
+
+        # Apply weighing
+        W = np.diag(w.flat)
+        GS = G.T * S
+
+        # Linear regression for the reactant layer (aka RC)
+        inv_S, r_rc, P_R_rc, P_N_rc = ComponentContribution._invert_project(S * W)
+
+        # Linear regression for the group layer (aka GC)
+        inv_GS, r_gc, P_R_gc, P_N_gc = ComponentContribution._invert_project(GS * W)
+
+        # Calculate the contributions in the stoichiometric space
+        dG0_rc = inv_S.T * W * b
+        dG0_gc = G * inv_GS.T * W * b
+        dG0_cc = P_R_rc * dG0_rc + P_N_rc * dG0_gc
+
+        ## extract out dG0_rc
+        #import csv
+        #cc = [];
+        #for i,n in enumerate(self.cids_joined):
+        #    cc_tmp = ['C%05d' % n,dG0_rc[i,0],dG0_gc[i,0],dG0_cc[i,0]];
+        #    cc.append(cc_tmp)
+        #with open('data\\cc_debug_e.csv', 'w') as csvfile:
+        #    writer = csv.writer(csvfile)
+        #    writer.writerow(["",'dG0_rc','dG0_gc','dG0_cc'])
+        #    for r in cc:
+        #        writer.writerow(r);
+
+        # Calculate the residual error (unweighted squared error divided by N - rank)
+        e_rc = (S.T * dG0_rc - b)
+        MSE_rc = float((e_rc.T * W * e_rc) / (n - r_rc))
+        # MSE_rc = (e_rc.T * e_rc) / (n - r_rc)
+
+        e_gc = (S.T * dG0_gc - b)
+        MSE_gc = float((e_gc.T * W * e_gc) / (n - r_gc))
+        # MSE_gc = (e_gc.T * e_gc) / (n - r_gc)
+
+        # Calculate the MSE of GC residuals for all reactions in ker(G).
+        # This will help later to give an estimate of the uncertainty for such
+        # reactions, which otherwise would have a 0 uncertainty in the GC method.
+        kerG_inds = list(np.where(np.all(GS == 0, 0))[1].flat)
+        
+        e_kerG = e_gc[kerG_inds]
+        MSE_kerG = float((e_kerG.T * e_kerG) / len(kerG_inds))
+
+        MSE_inf = 1e10
+
+        # Calculate the uncertainty covariance matrices
+        # [inv_S_orig, ~, ~, ~] = invertProjection(S);
+        # [inv_GS_orig, ~, ~, ~] = invertProjection(GS);
+        inv_SWS, _, _, _ = ComponentContribution._invert_project(S * W * S.T)
+        inv_GSWGS, _, _, _ = ComponentContribution._invert_project(GS * W * GS.T)
+
+
+        #V_rc  = P_R_rc * (inv_S_orig.T * W * inv_S_orig) * P_R_rc
+        #V_gc  = P_N_rc * G * (inv_GS_orig.T * W * inv_GS_orig) * G' * P_N_rc
+        V_rc = P_R_rc * inv_SWS * P_R_rc
+        V_gc  = P_N_rc * G * inv_GSWGS * G.T * P_N_rc
+        # V_rc  = P_R_rc * (inv_S_orig.T * inv_S_orig) * P_R_rc
+        # V_gc  = P_N_rc * G * (inv_GS_orig.T * inv_GS_orig) * G.T * P_N_rc
+        V_inf = P_N_rc * G * P_N_gc * G.T * P_N_rc
+
+        # Calculate the total of the contributions and covariances
+        cov_dG0 = V_rc * MSE_rc + V_gc * MSE_gc + V_inf * MSE_inf
+
+        # extract out only rc:
+        cov_dG0_rc = V_rc*MSE_rc
+        var_dG0_rc = np.diag(cov_dG0_rc)
+        #cc = [];
+        #for i,n in enumerate(self.cids_joined):
+        #    cc_tmp = ['C%05d' % n,var_dG0_rc[i]];
+        #    cc.append(cc_tmp)
+        #import csv
+        #with open('data\\var_dG0_rc.csv', 'w') as csvfile:
+        #    writer = csv.writer(csvfile)
+        #    writer.writerow(["",'error'])
+        #    for r in cc:
+        #        writer.writerow(r);
+
+        cov_dG0_gc = V_gc*MSE_gc
+        var_dG0_gc = np.diag(cov_dG0_gc)
+        #cc = [];
+        #for i,n in enumerate(self.cids_joined):
+        #    cc_tmp = ['C%05d' % n,var_dG0_gc[i]];
+        #    cc.append(cc_tmp)
+        #import csv
+        #cc = [];
+        #with open('data\\var_dG0_gc.csv', 'w') as csvfile:
+        #    writer = csv.writer(csvfile)
+        #    writer.writerow(["",'error'])
+        #    for r in cc:
+        #        writer.writerow(r);
+
+
+        # Put all the calculated data in 'params' for the sake of debugging
+        self.params = {'b':           self.train_b,
+                       'train_S':     self.train_S_joined,
+                       'model_S':     self.model_S_joined,
+                       'train_cids':  self.train_cids,
+                       'cids':        self.cids_joined,
+                       'w':           self.train_w,
+                       'G':           self.train_G,
+                       'dG0_rc':      dG0_rc,
+                       'dG0_gc':      dG0_gc,
+                       'dG0_cc':      dG0_cc,
+                       'cov_dG0':     cov_dG0,
+                       'V_rc':        V_rc,
+                       'V_gc':        V_gc,
+                       'V_inf':       V_inf,
+                       'MSE_rc':      MSE_rc,
+                       'MSE_gc':      MSE_gc,
+                       'MSE_kerG':    MSE_kerG,
+                       'MSE_inf':     MSE_inf,
+                       'P_R_rc':      P_R_rc,
+                       'P_R_gc':      P_R_gc,
+                       'inv_S':       inv_S,
+                       'inv_GS':      inv_GS,
+                       'inv_SWS':     inv_SWS,
+                       'inv_GSWGS':   inv_GSWGS}
 

@@ -151,6 +151,10 @@ class KeggModel(object):
             reactions.append(reaction)
             
         self.dG0, self.cov_dG0 = cc.get_dG0_r_multi(reactions)
+
+    def add_thermo_f(self, cc):
+        """"""
+        self.dG0_f, self.cov_dG0_f = cc.estimate_kegg_model_f(self.S, self.cids)
         
     def get_transformed_dG0(self, pH, I, T):
         """
@@ -162,6 +166,31 @@ class KeggModel(object):
         U, s, V = np.linalg.svd(self.cov_dG0, full_matrices=True)
         sqrt_Sigma = np.matrix(U) * np.matrix(np.diag(s**0.5)) * np.matrix(V)
         return dG0_prime, dG0_std, sqrt_Sigma
+
+    def get_transformed_dG0_f(self, pH, I, T):
+        """
+            returns the estimated dG0_prime for the compounds
+            and the standard deviation of each estimate (i.e. a measure for the uncertainty)
+            for the compounds.
+        """
+
+        dG0_prime_f_tmp = self._get_transform_ddG0_f(pH=pH, I=I, T=T)
+        dG0_prime_f = {}
+        #dG0_std_f = {};
+        for c in self.dG0_f.iterkeys(): 
+            dG0_prime_f[c] = self.dG0_f[c] + dG0_prime_f_tmp[c]
+            #dG0_std_f[c] = sqrt(self.cov_dG0_f[c])
+
+        dG0_var_f_tmp = np.zeros([len(self.dG0_f),len(self.dG0_f)])
+        dG0_var_f_id = []
+        for i,ci in enumerate(self.dG0_f.keys()):
+            dG0_var_f_id.append(ci)
+            for j,cj in enumerate(self.dG0_f.keys()):
+                dG0_var_f_tmp[i,j] = self.cov_dG0_f[(ci,cj)]
+
+        dG0_var_f = dict(zip(dG0_var_f_id, np.diag(dG0_var_f_tmp)))
+               
+        return dG0_prime_f, dG0_var_f
 
     def _get_transform_ddG0(self, pH, I, T):
         """
@@ -181,6 +210,27 @@ class KeggModel(object):
         
         ddG0_forward = np.dot(self.S.T, ddG0_compounds)
         return ddG0_forward
+
+    def _get_transform_ddG0_f(self, pH, I, T):
+        """
+        needed in order to calculate the transformed Gibbs energies of the 
+        model compounds.
+        
+        Returns:
+            an array (whose length is self.S.shape[1]) with the differences
+            between DrG0_prime and DrG0. Therefore, one must add this array
+            to the chemical Gibbs energies of reaction (DrG0) to get the 
+            transformed values
+
+        DM implementation
+        """
+
+        dG0_prime_f = {}
+        for i, cid in enumerate(self.cids):
+            comp = self.ccache.get_kegg_compound(cid)
+            dG0_prime_f [cid] = comp.transform(pH, I, T)
+
+        return dG0_prime_f # return only the transformed compound dG0
         
     def check_S_balance(self, fix_water=False):
         elements, Ematrix = self.ccache.get_element_matrix(self.cids)
