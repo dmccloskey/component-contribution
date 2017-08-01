@@ -1,4 +1,7 @@
-import openbabel
+try:
+    import openbabel
+except ImportError as e:
+    print(e)
 import types
 import re
 from . import chemaxon
@@ -11,8 +14,13 @@ class Molecule(object):
 
     # for more rendering options visit:
     # http://www.ggasoftware.com/opensource/indigo/api/options#rendering
-    _obElements = openbabel.OBElementTable()
-    _obSmarts = openbabel.OBSmartsPattern()
+    try:
+        _obElements = openbabel.OBElementTable()
+        _obSmarts = openbabel.OBSmartsPattern()
+    except Exception as e:
+        print(e)
+        _obElements = None
+        _obSmarts = None
     
     @staticmethod
     def GetNumberOfElements():

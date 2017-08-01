@@ -1,7 +1,10 @@
 import logging, csv, re, platform
 import io
 from subprocess import Popen, PIPE
-import openbabel
+try:
+    import openbabel
+except ImportError as e:
+    print(e)
 
 if platform.system() == 'Windows':
     CXCALC_BIN = 'C:\\Program Files (x86)\\ChemAxon\\MarvinBeans\\bin\\cxcalc.bat'
@@ -12,7 +15,11 @@ else:
 
 MID_PH = 7.0
 N_PKAS = 20
-_obElements = openbabel.OBElementTable()
+try:
+    _obElements = openbabel.OBElementTable()
+except Exception as e:
+    _obElements = None
+    print(e)
 
 class ChemAxonError(Exception):
     pass

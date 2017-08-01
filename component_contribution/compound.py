@@ -155,75 +155,91 @@ class Compound(object):
 
     @staticmethod
     def mol2inchi(s):
-        openbabel.obErrorLog.SetOutputLevel(-1)
+        try:
+            openbabel.obErrorLog.SetOutputLevel(-1)
 
-        conv = openbabel.OBConversion()
-        conv.SetInAndOutFormats('mol', 'inchi')
-        conv.AddOption("F", conv.OUTOPTIONS)
-        conv.AddOption("T", conv.OUTOPTIONS)
-        conv.AddOption("x", conv.OUTOPTIONS, "noiso")
-        conv.AddOption("w", conv.OUTOPTIONS)
-        obmol = openbabel.OBMol()
-        if not conv.ReadString(obmol, str(s)):
+            conv = openbabel.OBConversion()
+            conv.SetInAndOutFormats('mol', 'inchi')
+            conv.AddOption("F", conv.OUTOPTIONS)
+            conv.AddOption("T", conv.OUTOPTIONS)
+            conv.AddOption("x", conv.OUTOPTIONS, "noiso")
+            conv.AddOption("w", conv.OUTOPTIONS)
+            obmol = openbabel.OBMol()
+            if not conv.ReadString(obmol, str(s)):
+                return None
+            inchi = conv.WriteString(obmol, True) # second argument is trimWhitespace
+            if inchi == '':
+                return None
+            else:
+                return inchi
+        except Exception as e:
+            print(e)
             return None
-        inchi = conv.WriteString(obmol, True) # second argument is trimWhitespace
-        if inchi == '':
-            return None
-        else:
-            return inchi
 
     @staticmethod
     def inchi2smiles(inchi):
-        openbabel.obErrorLog.SetOutputLevel(-1)
-        
-        conv = openbabel.OBConversion()
-        conv.SetInAndOutFormats('inchi', 'smiles')
-        #conv.AddOption("F", conv.OUTOPTIONS)
-        #conv.AddOption("T", conv.OUTOPTIONS)
-        #conv.AddOption("x", conv.OUTOPTIONS, "noiso")
-        #conv.AddOption("w", conv.OUTOPTIONS)
-        obmol = openbabel.OBMol()
-        conv.ReadString(obmol, str(inchi))
-        smiles = conv.WriteString(obmol, True) # second argument is trimWhitespace
-        if smiles == '':
+        try:
+            openbabel.obErrorLog.SetOutputLevel(-1)
+            
+            conv = openbabel.OBConversion()
+            conv.SetInAndOutFormats('inchi', 'smiles')
+            #conv.AddOption("F", conv.OUTOPTIONS)
+            #conv.AddOption("T", conv.OUTOPTIONS)
+            #conv.AddOption("x", conv.OUTOPTIONS, "noiso")
+            #conv.AddOption("w", conv.OUTOPTIONS)
+            obmol = openbabel.OBMol()
+            conv.ReadString(obmol, str(inchi))
+            smiles = conv.WriteString(obmol, True) # second argument is trimWhitespace
+            if smiles == '':
+                return None
+            else:
+                return smiles
+        except Exception as e:
+            print(e)
             return None
-        else:
-            return smiles
             
     @staticmethod
     def smiles2smiles(smiles_in):
-        openbabel.obErrorLog.SetOutputLevel(-1)
-        
-        conv = openbabel.OBConversion()
-        conv.SetInAndOutFormats('smiles', 'smiles')
-        #conv.AddOption("F", conv.OUTOPTIONS)
-        #conv.AddOption("T", conv.OUTOPTIONS)
-        #conv.AddOption("x", conv.OUTOPTIONS, "noiso")
-        #conv.AddOption("w", conv.OUTOPTIONS)
-        obmol = openbabel.OBMol()
-        conv.ReadString(obmol, str(smiles_in))
-        smiles_out = conv.WriteString(obmol, True) # second argument is trimWhitespace
-        if smiles_out == '':
+        try:
+            openbabel.obErrorLog.SetOutputLevel(-1)
+            
+            conv = openbabel.OBConversion()
+            conv.SetInAndOutFormats('smiles', 'smiles')
+            #conv.AddOption("F", conv.OUTOPTIONS)
+            #conv.AddOption("T", conv.OUTOPTIONS)
+            #conv.AddOption("x", conv.OUTOPTIONS, "noiso")
+            #conv.AddOption("w", conv.OUTOPTIONS)
+            obmol = openbabel.OBMol()
+            conv.ReadString(obmol, str(smiles_in))
+            smiles_out = conv.WriteString(obmol, True) # second argument is trimWhitespace
+            if smiles_out == '':
+                return None
+            else:
+                return smiles_out
+        except Exception as e:
+            print(e)
             return None
-        else:
-            return smiles_out
     @staticmethod
     def smiles2inchi(smiles):
-        openbabel.obErrorLog.SetOutputLevel(-1)
-        
-        conv = openbabel.OBConversion()
-        conv.SetInAndOutFormats('smiles', 'inchi')
-        conv.AddOption("F", conv.OUTOPTIONS)
-        conv.AddOption("T", conv.OUTOPTIONS)
-        conv.AddOption("x", conv.OUTOPTIONS, "noiso")
-        conv.AddOption("w", conv.OUTOPTIONS)
-        obmol = openbabel.OBMol()
-        conv.ReadString(obmol, str(smiles))
-        inchi = conv.WriteString(obmol, True) # second argument is trimWhitespace
-        if inchi == '':
+        try:
+            openbabel.obErrorLog.SetOutputLevel(-1)
+            
+            conv = openbabel.OBConversion()
+            conv.SetInAndOutFormats('smiles', 'inchi')
+            conv.AddOption("F", conv.OUTOPTIONS)
+            conv.AddOption("T", conv.OUTOPTIONS)
+            conv.AddOption("x", conv.OUTOPTIONS, "noiso")
+            conv.AddOption("w", conv.OUTOPTIONS)
+            obmol = openbabel.OBMol()
+            conv.ReadString(obmol, str(smiles))
+            inchi = conv.WriteString(obmol, True) # second argument is trimWhitespace
+            if inchi == '':
+                return None
+            else:
+                return inchi
+        except Exception as e:
+            print(e)
             return None
-        else:
-            return inchi
 
     def __str__(self):
         return "%s\nInChI: %s\npKas: %s\nmajor MS: nH = %d, charge = %d" % \
