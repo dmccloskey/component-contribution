@@ -1,8 +1,8 @@
 import openbabel
 import types
 import re
-from . import chemaxon
-from .thermodynamic_constants import default_T, default_pH
+import chemaxon
+from thermodynamic_constants import default_T, default_pH
 
 class OpenBabelError(Exception):
     pass
@@ -21,7 +21,7 @@ class Molecule(object):
     @staticmethod
     def GetAllElements():
         return [Molecule._obElements.GetSymbol(i) for i in 
-                range(Molecule.GetNumberOfElements())]
+                xrange(Molecule.GetNumberOfElements())]
 
     @staticmethod
     def GetSymbol(atomic_num):
@@ -29,7 +29,7 @@ class Molecule(object):
             
     @staticmethod
     def GetAtomicNum(elem):
-        if type(elem) == str:
+        if type(elem) == types.UnicodeType:
             elem = str(elem)
         return Molecule._obElements.GetAtomicNum(elem)
     
@@ -247,7 +247,7 @@ class Molecule(object):
         return self.obmol.NumAtoms()
 
     def GetAtoms(self):
-        return [self.obmol.GetAtom(i+1) for i in range(self.obmol.NumAtoms())]
+        return [self.obmol.GetAtom(i+1) for i in xrange(self.obmol.NumAtoms())]
     
     def FindSmarts(self, smarts):
         """
@@ -265,7 +265,7 @@ class Molecule(object):
         if Molecule._obSmarts.Match(self.obmol):
             match_list = Molecule._obSmarts.GetMapList()
             shift_left = lambda m: [(n - 1) for n in m] 
-            return list(map(shift_left, match_list))
+            return map(shift_left, match_list)
         else:
             return []
 
@@ -279,4 +279,4 @@ class Molecule(object):
 
 if __name__ == '__main__':
     mol = Molecule.FromInChI('InChI=1S/H2/h1H')
-    print(mol.ExactMass())
+    print mol.ExactMass()

@@ -107,7 +107,7 @@ class ComponentContribution(object):
         x_prime = []
         G_prime = []
 
-        for compound_id, coeff in reaction.items():
+        for compound_id, coeff in reaction.iteritems():
             if compound_id in self.cids_joined:
                 i = cids.index(compound_id)
                 x[i, 0] = coeff
@@ -177,14 +177,14 @@ class ComponentContribution(object):
             weights_gc = (x.T * G2 + g.T * G3).round(5)
             weights = weights_rc + weights_gc
     
-            orders = sorted(list(range(weights.shape[1])),
+            orders = sorted(range(weights.shape[1]),
                             key=lambda j:abs(weights[0, j]), reverse=True)
     
             analysis = []        
             for j in orders:
                 if abs(weights[0, j]) < 1e-5:
                     continue
-                r = KeggReaction({cids[i]:S[i,j] for i in range(S.shape[0])
+                r = KeggReaction({cids[i]:S[i,j] for i in xrange(S.shape[0])
                                   if S[i,j] != 0})
                 analysis.append({'index': j,
                                  'w_rc': weights_rc[0, j],
@@ -265,7 +265,7 @@ class ComponentContribution(object):
             major_ms_dG0_f = np.nan
 
         if gv is not None:
-            sparse_gv = [x for x in enumerate(gv.flat) if x[1] != 0]
+            sparse_gv = filter(lambda x: x[1] != 0, enumerate(gv.flat))
             d['group_vector'] = sparse_gv
 
         if not np.isnan(major_ms_dG0_f):
@@ -331,7 +331,7 @@ class ComponentContribution(object):
             smiles_pH7 = self.ccache.get_compound(compound_id).smiles_pH7
             try:
                 group_def = self.decomposer.smiles_to_groupvec(smiles_pH7)
-                for j in range(len(self.group_names)):
+                for j in xrange(len(self.group_names)):
                     G[i, j] = group_def[j]
             except inchi2gv.GroupDecompositionError:
                 # for compounds that have no InChI or are not decomposable

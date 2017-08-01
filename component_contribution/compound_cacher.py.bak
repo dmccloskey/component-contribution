@@ -1,5 +1,5 @@
 import json, os, logging, csv, gzip, numpy
-from .compound import Compound
+from compound import Compound
 base_path = os.path.split(os.path.realpath(__file__))[0]
 
 ### Input Files:
@@ -33,7 +33,7 @@ class Singleton(type):
             cls.instance=super(Singleton,cls).__call__(*args,**kw)
         return cls.instance
     
-class CompoundCacher(object, metaclass=Singleton):
+class CompoundCacher(object):
     """
         CompoundCacher is a singleton that handles caching of Compound objects
         for the component-contribution package. The Compounds are retrieved by
@@ -46,6 +46,7 @@ class CompoundCacher(object, metaclass=Singleton):
         the cache. When the method dump() is called, all cached data is written
         to a file that will be loaded in future python sessions.
     """
+    __metaclass__ = Singleton
     
     def __init__(self, cache_fname=None):
         self.cache_fname = cache_fname
@@ -73,9 +74,9 @@ class CompoundCacher(object, metaclass=Singleton):
     def dump(self):
         if self.need_to_update_cache_file:
             fp = gzip.open(self.cache_fname, 'w')
-            data = sorted(list(self.compound_dict.values()),
+            data = sorted(self.compound_dict.values(),
                           key=lambda d:d.compound_id)
-            dict_data = [x.to_json_dict() for x in data]
+            dict_data = map(lambda x:x.to_json_dict(), data)
             json.dump(dict_data, fp, cls=CompoundEncoder, 
                       sort_keys=True, indent=4,  separators=(',', ': '))
             fp.close()
@@ -111,7 +112,7 @@ class CompoundCacher(object, metaclass=Singleton):
             comp = self.get_compound(compound_id)
             atom_bag = comp.atom_bag
             if atom_bag is not None:
-                elements = elements.union(list(atom_bag.keys()))
+                elements = elements.union(atom_bag.keys())
             atom_bag_list.append(atom_bag)
         elements.discard('H') # don't balance H (it's enough to balance e-)
         elements = sorted(elements)

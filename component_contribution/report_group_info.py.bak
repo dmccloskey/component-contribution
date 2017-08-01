@@ -15,8 +15,8 @@ dG0_gc = cc.params['dG0_gc']
 G = cc.params['G']
 
 Ng = len(group_names)
-group_names += list(map(cc.cids_joined.__getitem__, np.nonzero(G[:, Ng:])[0]))
+group_names += map(cc.cids_joined.__getitem__, np.nonzero(G[:, Ng:])[0])
 
 csv_writer = csv.writer(sys.stdout)
 csv_writer.writerow(['Group', 'dG0_gc [kJ/mol]'])
-csv_writer.writerows(list(zip(group_names, ['%.2f' % x for x in dG0_gc.flat])))
+csv_writer.writerows(zip(group_names, map(lambda x : '%.2f' % x, dG0_gc.flat)))

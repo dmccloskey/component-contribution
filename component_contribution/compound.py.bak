@@ -1,7 +1,7 @@
-import openbabel, urllib.request, urllib.parse, urllib.error, logging
-from . import chemaxon
+import openbabel, urllib, logging
+import chemaxon
 import numpy as np
-from .thermodynamic_constants import R, debye_huckel
+from thermodynamic_constants import R, debye_huckel
 from scipy.misc import logsumexp
 
 MIN_PH = 0.0
@@ -120,7 +120,7 @@ class Compound(object):
         nHs = []
         zs = []
 
-        for i in range(n_species):
+        for i in xrange(n_species):
             zs.append((i - majorMSpH7) + major_ms_charge)
             nHs.append((i - majorMSpH7) + major_ms_nH)
         
@@ -146,7 +146,7 @@ class Compound(object):
 
     @staticmethod
     def get_inchi(compound_id):
-        s_mol = urllib.request.urlopen('http://rest.kegg.jp/get/cpd:%s/mol' % compound_id).read()
+        s_mol = urllib.urlopen('http://rest.kegg.jp/get/cpd:%s/mol' % compound_id).read()
         return Compound.mol2inchi(s_mol)
 
     @staticmethod

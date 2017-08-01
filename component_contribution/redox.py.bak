@@ -38,7 +38,7 @@ class redox_carrier_dict(dict):
             cid_red = int(row['CID_red'])
             nH_ox = int(row['nH_ox'])
             z_ox = int(row['charge_ox'])
-            cids_ox = [val.cid_ox for val in list(self.values())]
+            cids_ox = [val.cid_ox for val in self.values()]
             nH_red = int(row['nH_red'])
             z_red = int(row['charge_red'])
             E0_prime = float(row["E'0"])
@@ -49,4 +49,4 @@ class redox_carrier_dict(dict):
 
     def get_all_cids(self):
         return set(cids_ox + cids_red)
-        cids_red = [val.cid_red for val in list(self.values())]
+        cids_red = [val.cid_red for val in self.values()]

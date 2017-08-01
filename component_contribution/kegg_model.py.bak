@@ -1,8 +1,8 @@
 import re, csv, logging
 import numpy as np
-from .kegg_reaction import KeggReaction
-from .compound_cacher import CompoundCacher
-from .kegg_errors import KeggParseException
+from kegg_reaction import KeggReaction
+from compound_cacher import CompoundCacher
+from kegg_errors import KeggParseException
 
 class KeggModel(object):
     
@@ -53,7 +53,7 @@ class KeggModel(object):
     def from_csv(fd, has_reaction_ids=True, delimiter=None):
         csv_reader = csv.reader(fd, delimiter=delimiter)
         if has_reaction_ids:
-            rids = next(csv_reader)
+            rids = csv_reader.next()
             rids = rids[1:]
         else:
             rids = None
@@ -75,7 +75,7 @@ class KeggModel(object):
 
         cids = set()
         for reaction in kegg_reactions:
-            cids = cids.union(list(reaction.keys()))
+            cids = cids.union(reaction.keys())
         
         # convert the list of reactions in sparse notation into a full
         # stoichiometric matrix, where the rows (compounds) are according to the
@@ -144,8 +144,8 @@ class KeggModel(object):
         # check that all CIDs in the reaction are already cached by CC
         Nc, Nr = self.S.shape
         reactions = []
-        for j in range(Nr):
-            sparse = {self.cids[i]:self.S[i,j] for i in range(Nc)
+        for j in xrange(Nr):
+            sparse = {self.cids[i]:self.S[i,j] for i in xrange(Nc)
                       if self.S[i,j] != 0}
             reaction = KeggReaction(sparse)
             reactions.append(reaction)
@@ -201,7 +201,7 @@ class KeggModel(object):
             self.S[i_h2o, :] += add_water
             conserved += Ematrix[i_h2o, :].T * add_water
 
-        rxnFil = np.any(conserved[:,list(range(self.S.shape[1]))],axis=0)
+        rxnFil = np.any(conserved[:,range(self.S.shape[1])],axis=0)
         unbalanced_ind = np.nonzero(rxnFil)[1]
         if unbalanced_ind != []:
             logging.warning('There are (%d) unbalanced reactions in S. ' 
