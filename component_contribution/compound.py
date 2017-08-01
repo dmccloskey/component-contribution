@@ -1,4 +1,8 @@
-import openbabel, urllib.request, urllib.parse, urllib.error, logging
+try:
+    import openbabel
+except ImportError as e:
+    print(e)
+import urllib.request, urllib.parse, urllib.error, logging
 from . import chemaxon
 import numpy as np
 from .thermodynamic_constants import R, debye_huckel
